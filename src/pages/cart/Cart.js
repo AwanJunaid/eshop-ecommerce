@@ -17,6 +17,11 @@ import { FaTrashAlt } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import Card from "../../components/card/Card";
 import { selectIsLoggedIn } from "../../redux/slice/authSlice";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import Slider from "react-slick";
+import NextArrow from "../../components/product/NextArrow/NextArrow";
+import PrevArrow from "../../components/product/PrevArrow/PrevArrow";
 
 const Cart = () => {
   const cartItems = useSelector(selectCartItems);
@@ -87,7 +92,7 @@ const Cart = () => {
               </thead>
               <tbody>
                 {cartItems.map((cart, index) => {
-                  const { id, name, price, imageURL, cartQuantity } = cart;
+                  const { id, name, price, imageURLs, cartQuantity } = cart;
                   return (
                     <tr key={id}>
                       <td>{index + 1}</td>
@@ -95,11 +100,13 @@ const Cart = () => {
                         <p>
                           <b>{name}</b>
                         </p>
-                        <img
-                          src={imageURL}
-                          alt={name}
-                          style={{ width: "100px" }}
-                        />
+                        <div className={styles.images}>
+                          <img
+                            src={imageURLs[0]} // Display only the first image
+                            alt={`${name}-image-1`}
+                            style={{ width: "100px", marginRight: "5px" }}
+                          />
+                        </div>
                       </td>
                       <td>{price}</td>
                       <td>
@@ -149,7 +156,7 @@ const Cart = () => {
                   </p>
                   <div className={styles.text}>
                     <h4>Subtotal:</h4>
-                    <h3>{`$${cartTotalAmount.toFixed(2)}`}</h3>
+                    <h3>{`PKR${cartTotalAmount.toFixed(2)}`}</h3>
                   </div>
                   <p>Tax an shipping calculated at checkout</p>
                   <button

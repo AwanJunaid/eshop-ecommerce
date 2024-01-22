@@ -24,7 +24,7 @@ const categories = [
 
 const initialState = {
   name: "",
-  imageURL: "",
+  imageURLs: [],
   price: 0,
   category: "",
   brand: "",
@@ -58,31 +58,49 @@ const AddProduct = () => {
     setProduct({ ...product, [name]: value });
   };
 
+
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    // console.log(file);
+    const files = e.target.files;
+    const newImageURLs = [...product.imageURLs]; // Copy existing URLs
 
-    const storageRef = ref(storage, `eshop/${Date.now()}${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const uploadImage = (file) => {
+      const storageRef = ref(storage, `eshop/${Date.now()}${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
+      return new Promise((resolve, reject) => {
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
+          },
+          (error) => {
+            reject(error);
+          },
+          () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              newImageURLs.push(downloadURL); // Add new URL
+              resolve();
+            });
+          }
+        );
+      });
+    };
+
+    // Upload each file and wait for all uploads to complete
+    const uploadPromises = Array.from(files).map((file) => uploadImage(file));
+
+    Promise.all(uploadPromises)
+      .then(() => {
+        setProduct({ ...product, imageURLs: newImageURLs });
+        toast.success("Images uploaded successfully.");
+      })
+      .catch((error) => {
         toast.error(error.message);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          setProduct({ ...product, imageURL: downloadURL });
-          toast.success("Image uploaded successfully.");
-        });
-      }
-    );
+      });
   };
+  
 
   const addProduct = (e) => {
     e.preventDefault();
@@ -92,7 +110,7 @@ const AddProduct = () => {
     try {
       const docRef = addDoc(collection(db, "products"), {
         name: product.name,
-        imageURL: product.imageURL,
+        imageURLs: product.imageURLs,
         price: Number(product.price),
         category: product.category,
         brand: product.brand,
@@ -111,19 +129,22 @@ const AddProduct = () => {
     }
   };
 
-  const editProduct = (e) => {
+  const editProduct = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    if (product.imageURL !== productEdit.imageURL) {
-      const storageRef = ref(storage, productEdit.imageURL);
-      deleteObject(storageRef);
+  
+    if (product.imageURLs !== productEdit.imageURLs) {
+      // Delete old images if necessary
+      for (const oldImageURL of productEdit.imageURLs) {
+        const storageRef = ref(storage, oldImageURL);
+        await deleteObject(storageRef);
+      }
     }
-
+  
     try {
-      setDoc(doc(db, "products", id), {
+      await setDoc(doc(db, "products", id), {
         name: product.name,
-        imageURL: product.imageURL,
+        imageURLs: product.imageURLs,
         price: Number(product.price),
         category: product.category,
         brand: product.brand,
@@ -139,6 +160,7 @@ const AddProduct = () => {
       toast.error(error.message);
     }
   };
+  
 
   return (
     <>

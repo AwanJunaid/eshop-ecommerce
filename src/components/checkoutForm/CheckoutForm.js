@@ -1,9 +1,4 @@
 import React, { useEffect, useState } from "react";
-import {
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import styles from "./CheckoutForm.module.scss";
 import Card from "../card/Card";
 import CheckoutSummary from "../checkoutSummary/CheckoutSummary";
@@ -20,12 +15,13 @@ import { selectShippingAddress } from "../../redux/slice/checkoutSlice";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useNavigate } from "react-router-dom";
+import DropIn from "braintree-web-drop-in-react";
 
-const CheckoutForm = () => {
-  const [message, setMessage] = useState(null);
+const CheckoutForm = ({ clientToken, paymentMethod, onPaymentMethodChange }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const stripe = useStripe();
-  const elements = useElements();
+  const [instance, setInstance] = useState(null);
+  const [nonce, setNonce] = useState(null);
+  const [message, setMessage] = useState(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -37,21 +33,39 @@ const CheckoutForm = () => {
   const shippingAddress = useSelector(selectShippingAddress);
 
   useEffect(() => {
-    if (!stripe) {
-      return;
+    console.log("clientToken:", clientToken);
+    console.log("paymentMethod:", paymentMethod);
+    console.log("instance:", instance);
+
+    if (paymentMethod === "braintree" && !instance && clientToken) {
+      // Initialize Braintree Drop-in UI
+      setInstance(null); // Reset instance if it was previously set
     }
+  }, [clientToken, paymentMethod, instance]);
 
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      "payment_intent_client_secret"
-    );
+  const handlePaymentMethodChange = (method) => {
+    onPaymentMethodChange(method);
+  };
 
-    if (!clientSecret) {
-      return;
+  const handleBraintreePayment = async () => {
+    setIsLoading(true);
+    try {
+      const { nonce: paymentNonce } = await instance.requestPaymentMethod();
+      setNonce(paymentNonce);
+      setIsLoading(false);
+      // You can send the nonce to your server for further processing
+      // For demonstration purposes, we simulate the server response with a delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await saveOrder(); // Call your saveOrder function or any payment processing logic
+    } catch (error) {
+      console.error("Error processing Braintree payment:", error);
+      setIsLoading(false);
+      setMessage("Failed to process payment");
     }
-  }, [stripe]);
+  };
 
-  // Save order to Order History
-  const saveOrder = () => {
+  const saveOrder = async () => {
+    // Implement your logic for saving the order using Braintree nonce
     const today = new Date();
     const date = today.toDateString();
     const time = today.toLocaleTimeString();
@@ -64,6 +78,7 @@ const CheckoutForm = () => {
       orderStatus: "Order Placed...",
       cartItems,
       shippingAddress,
+      paymentNonce: nonce, // Store the Braintree nonce in your order data
       createdAt: Timestamp.now().toDate(),
     };
     try {
@@ -80,38 +95,11 @@ const CheckoutForm = () => {
     e.preventDefault();
     setMessage(null);
 
-    if (!stripe || !elements) {
-      return;
+    if (paymentMethod === "braintree" && instance) {
+      await handleBraintreePayment();
+    } else {
+      // Handle other payment methods here (if any)
     }
-
-    setIsLoading(true);
-
-    const confirmPayment = await stripe
-      .confirmPayment({
-        elements,
-        confirmParams: {
-          // Make sure to change this to your payment completion page
-          return_url: "http://localhost:3000/checkout-success",
-        },
-        redirect: "if_required",
-      })
-      .then((result) => {
-        // ok - paymentIntent // bad - error
-        if (result.error) {
-          toast.error(result.error.message);
-          setMessage(result.error.message);
-          return;
-        }
-        if (result.paymentIntent) {
-          if (result.paymentIntent.status === "succeeded") {
-            setIsLoading(false);
-            toast.success("Payment successful");
-            saveOrder();
-          }
-        }
-      });
-
-    setIsLoading(false);
   };
 
   return (
@@ -126,10 +114,31 @@ const CheckoutForm = () => {
           </div>
           <div>
             <Card cardClass={`${styles.card} ${styles.pay}`}>
-              <h3>Stripe Checkout</h3>
-              <PaymentElement id={styles["payment-element"]} />
+              <h3>Payment Method</h3>
+              <div>
+                <label>
+                  <input
+                    type="radio"
+                    value="braintree"
+                    checked={paymentMethod === "braintree"}
+                    onChange={() => handlePaymentMethodChange("braintree")}
+                  />
+                  Braintree
+                </label>
+              </div>
+              {paymentMethod === "braintree" && (
+                <DropIn
+                  options={{
+                    authorization: clientToken,
+                  }}
+                   onInstance={(instance) => {
+                        setInstance(instance);
+                        console.log("Braintree Instance:", instance);
+                      }}
+                />
+              )}
               <button
-                disabled={isLoading || !stripe || !elements}
+                disabled={isLoading}
                 id="submit"
                 className={styles.button}
               >
@@ -141,11 +150,10 @@ const CheckoutForm = () => {
                       style={{ width: "20px" }}
                     />
                   ) : (
-                    "Pay now"
+                    "Place Order"
                   )}
                 </span>
               </button>
-              {/* Show any error or success messages */}
               {message && <div id={styles["payment-message"]}>{message}</div>}
             </Card>
           </div>

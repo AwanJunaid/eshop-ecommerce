@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 import { useDispatch, useSelector } from "react-redux";
 import {
   CALCULATE_SUBTOTAL,
@@ -15,12 +13,12 @@ import {
 } from "../../redux/slice/checkoutSlice";
 import { toast } from "react-toastify";
 import CheckoutForm from "../../components/checkoutForm/CheckoutForm";
-
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PK);
+import braintree from "braintree-web";
 
 const Checkout = () => {
   const [message, setMessage] = useState("Initializing checkout...");
-  const [clientSecret, setClientSecret] = useState("");
+  const [clientToken, setClientToken] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("braintree");
 
   const cartItems = useSelector(selectCartItems);
   const totalAmount = useSelector(selectCartTotalAmount);
@@ -30,17 +28,15 @@ const Checkout = () => {
   const billingAddress = useSelector(selectBillingAddress);
 
   const dispatch = useDispatch();
+
   useEffect(() => {
     dispatch(CALCULATE_SUBTOTAL());
     dispatch(CALCULATE_TOTAL_QUANTITY());
   }, [dispatch, cartItems]);
 
-  const description = `eShop payment: email: ${customerEmail}, Amount: ${totalAmount}`;
-
   useEffect(() => {
-    // http://localhost:4242/create-payment-intent
-    // Create PaymentIntent as soon as the page loads
-    fetch("https://eshop-react-firebase.herokuapp.com/create-payment-intent", {
+    // Generate Braintree client token
+    fetch("http://localhost:4242/create-braintree-client-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -48,41 +44,43 @@ const Checkout = () => {
         userEmail: customerEmail,
         shipping: shippingAddress,
         billing: billingAddress,
-        description,
       }),
     })
       .then((res) => {
         if (res.ok) {
           return res.json();
         }
+        console.error("Server returned an error:", res.status, res.statusText);
         return res.json().then((json) => Promise.reject(json));
       })
       .then((data) => {
-        setClientSecret(data.clientSecret);
+        console.log("Received clientToken:", data.clientToken);
+        setClientToken(data.clientToken);
       })
       .catch((error) => {
+        console.error("Error fetching clientToken:", error);
         setMessage("Failed to initialize checkout");
         toast.error("Something went wrong!!!");
       });
-  }, []);
+  }, [cartItems, customerEmail, shippingAddress, billingAddress]);
 
-  const appearance = {
-    theme: "stripe",
-  };
-  const options = {
-    clientSecret,
-    appearance,
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
   };
 
   return (
     <>
       <section>
-        <div className="container">{!clientSecret && <h3>{message}</h3>}</div>
+        <div className="container">
+          {!clientToken && <h3>{message}</h3>}
+        </div>
       </section>
-      {clientSecret && (
-        <Elements options={options} stripe={stripePromise}>
-          <CheckoutForm />
-        </Elements>
+      {clientToken && (
+        <CheckoutForm
+          paymentMethod={paymentMethod}
+          clientToken={clientToken}
+          onPaymentMethodChange={handlePaymentMethodChange}
+        />
       )}
     </>
   );

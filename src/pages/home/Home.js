@@ -22,6 +22,7 @@ const Home = () => {
     <div>
       <Slider />
       <Product />
+      
     </div>
   );
 };

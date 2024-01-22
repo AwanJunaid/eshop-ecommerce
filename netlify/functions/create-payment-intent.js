@@ -11,10 +11,12 @@ app.use(express.json());
 
 const gateway = new braintree.BraintreeGateway({
   environment: braintree.Environment.Sandbox, // Use Environment.Production for production
-  merchantId: 'qnt7tsww93h22nqm',
-  publicKey: '63xr2vnf3hhztf23',
-  privateKey: 'bc1f40c11fc48c35a8e8b8079baee4da',
+  merchantId: process.env.BRAINTREE_MERCHANT_ID,
+  publicKey: process.env.BRAINTREE_PUBLIC_KEY,
+  privateKey: process.env.BRAINTREE_PRIVATE_KEY,
 });
+
+app.use(cors());
 
 app.post("/create-braintree-client-token", async (req, res) => {
   try {
@@ -49,5 +51,5 @@ app.post("/process-braintree-payment", async (req, res) => {
   }
 });
 
-const PORT = 4242
+const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => console.log(`Node server listening on port ${PORT}`));

@@ -76,7 +76,7 @@ const Contact = () => {
                 </span>
                 <span>
                   <FaEnvelope />
-                  <p>Support@eshop.com</p>
+                  <p>Support@khawabgah.com</p>
                 </span>
                 <span>
                   <GoLocation />
@@ -84,7 +84,7 @@ const Contact = () => {
                 </span>
                 <span>
                   <FaTwitter />
-                  <p>@ZinoTrust</p>
+                  <p>@Junaid</p>
                 </span>
               </div>
             </Card>

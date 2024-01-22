@@ -113,17 +113,24 @@ const ViewProducts = () => {
             </thead>
             <tbody>
               {currentProducts.map((product, index) => {
-                const { id, name, price, imageURL, category } = product;
+                const { id, name, price, imageURLs, category } = product;
                 return (
                   <tr key={id}>
                     <td>{index + 1}</td>
-                    <td>
-                      <img
-                        src={imageURL}
-                        alt={name}
-                        style={{ width: "100px" }}
-                      />
-                    </td>
+            <td>
+              <div className={styles.imageContainer}>
+              {imageURLs && imageURLs.length > 0 && (
+            imageURLs.map((imageURL, i) => (
+              <img
+                key={i}
+                src={imageURL}
+                alt={`${name} - Image ${i + 1}`}
+                style={{ width: "100px", marginRight: "5px" }}
+              />
+            ))
+          )}
+              </div>
+            </td>
                     <td>{name}</td>
                     <td>{category}</td>
                     <td>{`$${price}`}</td>
@@ -135,7 +142,7 @@ const ViewProducts = () => {
                       <FaTrashAlt
                         size={18}
                         color="red"
-                        onClick={() => confirmDelete(id, imageURL)}
+                        onClick={() => confirmDelete(id, imageURLs)}
                       />
                     </td>
                   </tr>
