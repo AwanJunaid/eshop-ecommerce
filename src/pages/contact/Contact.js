@@ -72,7 +72,7 @@ const Contact = () => {
               <div className={styles.icons}>
                 <span>
                   <FaPhoneAlt />
-                  <p>+234 705 141 6545</p>
+                  <p>+91 3307963830</p>
                 </span>
                 <span>
                   <FaEnvelope />
@@ -80,7 +80,7 @@ const Contact = () => {
                 </span>
                 <span>
                   <GoLocation />
-                  <p>Abuja, Nigeria</p>
+                  <p>Islamabad,Pakistan</p>
                 </span>
                 <span>
                   <FaTwitter />

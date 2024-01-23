@@ -66,7 +66,7 @@ const Orders = () => {
                         </td>
                         <td>{id}</td>
                         <td>
-                          {"$"}
+                          {"PKR"}
                           {orderAmount}
                         </td>
                         <td>

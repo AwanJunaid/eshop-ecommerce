@@ -30,7 +30,7 @@ const OrderDetails = () => {
               <b>Order ID</b> {order.id}
             </p>
             <p>
-              <b>Order Amount</b> ${order.orderAmount}
+              <b>Order Amount</b> PKR{order.orderAmount}
             </p>
             <p>
               <b>Order Status</b> {order.orderStatus}
@@ -74,9 +74,9 @@ const OrderDetails = () => {
                           style={{ width: "100px" }}
                         />
                       </td>
-                      <td>{price}</td>
+                      <td>PKR{price}</td>
                       <td>{cartQuantity}</td>
-                      <td>{(price * cartQuantity).toFixed(2)}</td>
+                      <td>PKR{(price * cartQuantity).toFixed(2)}</td>
                     </tr>
                   );
                 })}
